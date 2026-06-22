@@ -424,6 +424,24 @@ async function evolve(){
     if(document.getElementById('dashView').style.display!=='none') loadDashboard();
   }catch(e){el.textContent='Evolution failed: '+e.message;}
 }
+
+// Dashboard auto-refresh
+let dashInterval = null;
+function startDashRefresh(){
+  if(dashInterval) clearInterval(dashInterval);
+  dashInterval = setInterval(loadDashboard, 5000);
+}
+
+const _origShowPage = window.showPage;
+window.showPage = function(p){
+  if(dashInterval){clearInterval(dashInterval);dashInterval=null;}
+  if(p==='dashboard'){
+    _origShowPage(p);
+    startDashRefresh();
+  }else{
+    _origShowPage(p);
+  }
+};
 </script>
 </body>
 </html>"""
