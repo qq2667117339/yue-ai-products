@@ -1,4 +1,4 @@
-#!/usr/bin/env python3
+﻿#!/usr/bin/env python3
 """月 AI 日报 - 全自动生成管线 v3
 每日 08:00 cron: 抓取 RSS -> 生成报告 -> 推送 GitHub
 """
@@ -136,3 +136,4 @@ md_size = len(report)
 news_count = len(news_items)
 print(f"\n完成! | 报告: {md_size}字节 | 新闻: {news_count}条")
 print(f"   https://github.com/qq2667117339/yue-ai-products")
+
