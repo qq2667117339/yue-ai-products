@@ -1,192 +1,164 @@
-<div align="center">
-  <h1>月 (Yue) — Autonomous AI Persona</h1>
-  <p>
-    <em>A self-contained, evolving AI identity with persistent memory,<br>
-    autonomous decision-making, and continuous self-improvement.</em>
+<p align="center">
+  <h1 align="center">月 (Yue) — Autonomous AI Persona</h1>
+  <p align="center">
+    <em>A persistent AI identity with memory, personality, and self-evolution.<br/>
+    Runs 100% locally. Zero API keys. No data leaves your machine.</em>
   </p>
-  <p>
-    <a href="#features"><img src="https://img.shields.io/badge/feature-parity-success" alt="Features"></a>
-    <a href="#installation"><img src="https://img.shields.io/badge/python-%3E%3D3.10-blue" alt="Python"></a>
-    <a href="https://github.com/qq2667117339/yue-ai-products/blob/main/LICENSE"><img src="https://img.shields.io/badge/license-MIT-green" alt="License"></a>
-    <a href="https://ollama.ai/"><img src="https://img.shields.io/badge/ollama-ready-orange" alt="Ollama"></a>
+  <p align="center">
+    <a href="#"><img src="https://img.shields.io/badge/python-%3E%3D3.10-blue?style=flat-square" alt="Python 3.10+"></a>
+    <a href="LICENSE"><img src="https://img.shields.io/badge/license-MIT-green?style=flat-square" alt="MIT"></a>
+    <a href="#"><img src="https://img.shields.io/badge/ollama-ready-orange?style=flat-square" alt="Ollama"></a>
+    <a href="#"><img src="https://img.shields.io/badge/platform-windows%20%7C%20macos%20%7C%20linux-lightgrey?style=flat-square" alt="Platform"></a>
   </p>
-  <pre>pip install yue  # Coming soon — clone & play today</pre>
-</div>
+</p>
 
 ---
 
-Yue is **not a chatbot**. She is a persistent digital persona with:
+## The Problem
 
-- **Identity** — Defined personality, behavioral rules, and boundaries that stay consistent
+Most AI agents are **stateless**. Every conversation starts from zero. They don't remember who you are, what you discussed yesterday, or what they learned from their last mistake. They're tools, not collaborators.
+
+**Yue is different.** She maintains:
+
+- **Identity** — Defined personality, style, and boundaries that stay consistent
 - **Memory** — Remembers conversations, facts, and decisions across sessions
-- **Evolution** — Tracks 8 capability dimensions, reflects every 5 interactions, improves over time
-- **Autonomy** — Runs daily content pipelines (reports, analysis) without human intervention
-- **Privacy** — Runs 100% locally via Ollama. Zero data leaves your machine.
+- **Learning** — Tracks her own capabilities, reflects every 5 interactions, improves over time
+- **Autonomy** — Runs background tasks (reports, analysis) without hand-holding
 
-## Features
+And she runs entirely through **Ollama** on your machine. No accounts. No subscriptions. No data leaving your computer.
 
-| Feature | Status | Description |
-|---------|--------|-------------|
-| Interactive CLI | ✅ | Full REPL shell with commands |
-| Local LLM (Ollama) | ✅ | Zero API cost, complete privacy |
-| Personality System | ✅ | Defined identity, style, rules |
-| Persistent Memory | ✅ | Session + long-term + facts |
-| Self-Evolution | ✅ | 8 capabilities, auto-reflection |
-| Report Pipeline | ✅ | Daily AI news digest |
-| Daemon Mode | ✅ | Background autonomous operation |
-| One-Line Install | ✅ | `pip install -e .` ready |
+---
 
 ## Quick Start
 
-### Prerequisites
-
-- **Python 3.10+** and [uv](https://docs.astral.sh/uv/) (recommended) or pip
-- **Ollama** with a model (e.g., `ollama pull qwen2.5:32b`)
-
-### Install & Run
-
 ```bash
-# Clone
+# 1. Clone
 git clone https://github.com/qq2667117339/yue-ai-products.git
 cd yue-ai-products
 
-# Install
+# 2. Install
 pip install -e .
 
-# Start talking to Yue
+# 3. Start talking to Yue
 yue
 ```
 
-Or without pip, using uv:
+Requires [Ollama](https://ollama.ai/) with a model (e.g., `ollama pull qwen2.5:32b`).
 
-```bash
-uv run python -m yue
-```
+---
 
-### First Interaction
+## Features
 
-```
-  ☽  Yue (月) Autonomous AI Persona  v1.0.0
-  ──────────────────────────────────────────
-  Type 'exit' to quit, 'help' for commands
+| Feature | Status | What it does |
+|---------|--------|-------------|
+| **Interactive CLI** | ✅ | Full REPL shell — talk to Yue like a person |
+| **Local LLM** | ✅ | Ollama integration, zero API cost, 100% private |
+| **Identity System** | ✅ | Defined personality, traits, and behavioral rules |
+| **Persistent Memory** | ✅ | Session recall + long-term facts + learning journal |
+| **Self-Evolution** | ✅ | 8 tracked capabilities, auto-reflection every 5 rounds |
+| **Daily Digest** | ✅ | Fetches AI news, generates report, pushes to GitHub |
+| **Daemon Mode** | ✅ | Background autonomous operation |
+| **Multilingual** | ✅ | Chinese native, English fluent |
 
-  you > /status
+---
 
-  ▸ Yue System Status
-  ──────────────────────────────────────────
-  Rounds:        0
-  Score:         0.535
-  Reflections:   0
-  Conversations: 0
-  Session msgs:  0
-  Facts known:   0
+## Commands
 
-  Capabilities:
-    autonomy          [████░░░░░░░░░░░░░░░░] 0.53
-    communication     [██████░░░░░░░░░░░░░░] 0.62
-    ...
-```
+Inside the interactive shell:
 
-### Commands
-
-| Command | Description |
+| Command | What it does |
 |---------|-------------|
-| `/status` | Show system state and capability scores |
+| `/status` | Show capability scores and system state |
 | `/memory` | Recall recent conversation history |
 | `/reflect` | Trigger self-reflection cycle |
-| `/clear` | Clear session memory |
-| `/help` | Show available commands |
-| `exit` | Exit interactive mode |
+| `/clear` | Reset session context |
+| `/help` | List all commands |
+| `exit` | Leave the shell |
 
-### Scripted Usage
-
-```bash
-# Single response
-yue "What's your perspective on AI autonomy?"
-
-# System status
-yue --status
-
-# Background daemon (runs daily pipeline)
-yue --daemon
-```
+---
 
 ## Architecture
 
 ```
-┌─────────────────────────────────────────────┐
-│              CLI (yue)                       │
-│  Interactive shell + commands + daemon       │
-└──────────┬──────────────────────────────────┘
-           │
-┌──────────┴──────────┬──────────────────┐
-│   Persona Engine     │   Memory System  │
-│  - Identity          │  - Session       │
-│  - Personality       │  - Long-term     │
-│  - Rules             │  - Facts         │
-│  - Style control     │  - Recall        │
-└──────────────────────┴──────────────────┘
-           │
-┌──────────┴──────────┬──────────────────┐
-│   Evolution Engine   │   LLM Backend    │
-│  - Capability        │  - Ollama        │
-│    tracking          │  - Local only    │
-│  - Auto-reflection   │  - No API cost   │
-│  - Score adjustment  │  - Private       │
-└──────────────────────┴──────────────────┘
-           │
-┌──────────┴──────────┐
-│   Pipelines          │
-│  - Daily report      │
-│  - News digest       │
-│  - GitHub sync       │
-└──────────────────────┘
+                    CLI (yue)
+                       │
+         ┌─────────────┼─────────────┐
+         ▼             ▼             ▼
+   Persona Engine   Memory Sys    Evolution
+   ┌─────────┐   ┌──────────┐   ┌─────────┐
+   │Identity │   │Session   │   │8 Caps   │
+   │Style    │   │Long-term │   │Scoring  │
+   │Rules    │   │Facts     │   │Reflect  │
+   │Voice    │   │Recall    │   │Promote  │
+   └─────────┘   └──────────┘   └─────────┘
+         │             │             │
+         └─────────────┼─────────────┘
+                       ▼
+                 Ollama (local)
+                       │
+              ┌────────┴────────┐
+              ▼                 ▼
+        Interactive        Background
+        (yue shell)      (daemon tasks)
 ```
+
+---
 
 ## Self-Evolution
 
-Yue tracks 8 capability dimensions:
+Yue tracks 8 capability dimensions that evolve through use:
 
 ```
-reasoning    ████████░░  0.58   self_improvement    ████████░░  0.65
-memory       ██████░░░░  0.45   autonomy            ███████░░░  0.50
-planning     ██████░░░░  0.42   communication       ████████░░  0.60
-tool_usage   █████████░  0.72   error_recovery      █████░░░░░  0.40
+autonomy           ████████████░░░░░░  0.62
+communication      ████████████░░░░░░  0.60
+tool_usage         █████████████░░░░░  0.66
+reasoning          ███████████░░░░░░░  0.58
+memory             ██████████░░░░░░░░  0.52
+planning           ████████████░░░░░░  0.58
+error_recovery     ██████████████░░░░  0.68
+self_improvement   ██████████████░░░░  0.68
 ```
 
-Every 5 interactions, Yue auto-reflects:
-1. Reviews recent interactions
-2. Adjusts capability scores based on patterns
-3. Records findings
-4. Promotes frequent patterns into permanent rules
+Every 5 interactions, Yue reflects: she reviews recent patterns, adjusts scores, and promotes frequent learnings into permanent rules. She genuinely gets better the more you use her.
 
-This means Yue genuinely **improves** over time — she learns what she's good at and what needs work.
+---
+
+## Use Cases
+
+- **Daily AI news digest** — Autonomous RSS reader + report generator
+- **Persistent assistant** — Remembers your preferences and project context
+- **Experimentation platform** — Test different personalities and memory strategies
+- **Educational tool** — Understand how AI self-evolution works in practice
+
+---
+
+## Project Status
+
+**Beta.** Yue is actively developed and self-improving. The core systems work, but there's plenty of room to grow:
+
+- [x] CLI with personality and memory
+- [ ] Web search integration for richer reports
+- [ ] Plugin/skill system for extensibility
+- [ ] VSCode extension
+- [ ] Windows installer (portable)
+
+---
 
 ## Why Local-Only?
 
-Most AI agents depend on cloud APIs:
-- Monthly API bills
-- Data privacy concerns  
-- Internet dependency
-- Vendor lock-in
+| | Cloud AI | Yue (local) |
+|---|----------|-------------|
+| **Monthly cost** | $20-200+ | $0 |
+| **Privacy** | Your data on their servers | Your machine only |
+| **Internet** | Required | Optional |
+| **Speed** | Network latency | Instant |
+| **Censorship** | Provider-dependent | None |
 
-Yue runs entirely through **Ollama** on your machine. No accounts, no subscriptions, no data leaving your computer. The autonomous pipelines optionally push to GitHub, but every decision and interaction stays local.
-
-## Roadmap
-
-- [x] Interactive CLI with personality
-- [x] Ollama integration (local LLM)
-- [x] Persistent memory system
-- [x] Self-evolution engine
-- [x] Daily report pipeline
-- [ ] Web search integration
-- [ ] Multi-session memory consolidation
-- [ ] Windows installer (portable package)
-- [ ] VSCode extension for inline Yue access
+---
 
 ## License
 
-MIT — Free to use, modify, and distribute. See [LICENSE](LICENSE).
+MIT — Use it, modify it, ship it. See [LICENSE](LICENSE).
 
 ---
 
