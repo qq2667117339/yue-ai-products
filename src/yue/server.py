@@ -369,6 +369,8 @@ async function loadSystem(){
   if(!ad.error) html+='<div style="font-size:13px;color:var(--text-dim)">Mic: '+ad.mic_count+' | Speaker: '+ad.speaker_count+' | Total devices: '+ad.devices+'</div>';
   html+='<button class="btn" onclick="takePhoto()" style="margin-top:12px">Take Photo</button>';
   html+='<div id="photoView" style="margin-top:8px"></div>';
+  html+='<button class="btn" onclick="evolve()" style="margin-top:8px;background:var(--accent);color:#fff;border:none;padding:8px 16px;border-radius:8px;cursor:pointer;font-size:13px">⚡ Auto-Evolve</button>';
+  html+='<div id="evolveResult" style="margin-top:8px;font-size:13px;color:var(--green)"></div>';
   html+='</div>';
   
   sv.innerHTML=html;
@@ -403,6 +405,24 @@ function showPage(p){
   if(p==='memory')loadMemory();
   if(p==='system')loadSystem();
   return false;
+}
+
+async function evolve(){
+  const el=document.getElementById('evolveResult');
+  el.textContent='Running autonomous evolution...';
+  try{
+    const r=await fetch('/api/evolve',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({cycles:10})});
+    const d=await r.json();
+    let txt='Evolved '+d.cycles+' cycles. Score: '+(d.final_score*100).toFixed(1)+'%';
+    if(d.history&&d.history.length){
+      const d0=d.history[0].delta;
+      const d1=d.history[d.history.length-1].delta;
+      txt+=' (change: '+(d0>0?'+':'')+d0.toFixed(3)+' → '+(d1>0?'+':'')+d1.toFixed(3)+')';
+    }
+    el.textContent=txt;
+    // Refresh dashboard stats
+    if(document.getElementById('dashView').style.display!=='none') loadDashboard();
+  }catch(e){el.textContent='Evolution failed: '+e.message;}
 }
 </script>
 </body>
@@ -476,6 +496,8 @@ class YueAPIHandler(BaseHTTPRequestHandler):
             self._handle_remember()
         elif path == "/api/reset":
             self._handle_reset()
+        elif path == "/api/evolve":
+            self._handle_evolve()
         else:
             self._send_error("Not found", 404)
 
@@ -560,6 +582,17 @@ class YueAPIHandler(BaseHTTPRequestHandler):
     def _handle_reset(self):
         mem.session = []
         self._send_json({"reset": True, "message": "Session cleared"})
+
+    def _handle_evolve(self):
+        body = self._read_body()
+        cycles = min(body.get("cycles", 3), 50)
+        result = evo.self_evolve(cycles=cycles)
+        self._send_json({
+            "evolved": True,
+            "cycles": result["cycles"],
+            "final_score": result["final_score"],
+            "history": result["results"],
+        })
 
     def _handle_system(self):
         self._send_json(get_system_stats())

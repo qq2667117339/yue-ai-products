@@ -35,21 +35,35 @@ def cmd_status(memory, evolution):
         print(f"    {name:<18} [{bar}] {score:.2f}")
     print()
 
+def cmd_evolve(evolution, cycles: int = 5):
+    """Run autonomous evolution cycles."""
+    print(f"\n  Running {cycles} autonomous evolution cycles...")
+    evo_before = evolution.get_status()
+    result = evolution.self_evolve(cycles=cycles)
+    evo_after = evolution.get_status()
+    delta = evo_after["score"] - evo_before["score"]
+    print(f"  Score: {evo_before['score']:.3f} \u2192 {evo_after['score']:.3f} ({delta:+.4f})")
+    print(f"  Reflections triggered: {evo_after['reflections'] - evo_before['reflections']}")
+    print()
+    return result
+
 def cmd_help():
     """Show available commands."""
     print("""
   Commands:
-    /status   - Show system status and capabilities
-    /memory   - Recall recent conversation history
-    /reflect  - Force a reflection cycle
-    /clear    - Clear session memory
-    /help     - Show this help
-    exit      - Exit interactive mode
+    /status     - Show system status and capabilities
+    /evolve [n] - Run n autonomous evolution cycles (default 5)
+    /memory     - Recall recent conversation history
+    /reflect    - Force a reflection cycle
+    /clear      - Clear session memory
+    /help       - Show this help
+    exit        - Exit interactive mode
 
   Usage:
     yue                    - Interactive shell
     yue <message>          - Single response
     yue --status           - Show status and exit
+    yue --evolve [cycles]  - Run autonomous evolution and exit
     yue --daemon           - Background mode
 """)
 
@@ -79,27 +93,33 @@ def interactive_mode():
         # Handle commands
         if user_input.startswith("/"):
             cmd = user_input.lower()
-            if cmd == "/status":
+            args_list = cmd.split()
+            cmd_base = args_list[0]
+
+            if cmd_base == "/status":
                 cmd_status(mem, evo)
-            elif cmd == "/memory":
+            elif cmd_base == "/evolve":
+                cycles = int(args_list[1]) if len(args_list) > 1 else 5
+                cmd_evolve(evo, cycles)
+            elif cmd_base == "/memory":
                 history = mem.recall()
                 print(f"\n  Recent ({len(history)} messages):")
                 for m in history[-6:]:
                     role = "you" if m["role"] == "user" else "yue"
                     print(f"  [{role}] {m['content'][:100]}")
                 print()
-            elif cmd == "/reflect":
+            elif cmd_base == "/reflect":
                 evo.record_interaction(caps_used=["communication", "reasoning"])
                 print(f"\n  Reflection triggered. Score: {evo.get_status()['score']:.3f}\n")
-            elif cmd == "/clear":
+            elif cmd_base == "/clear":
                 mem.session = []
                 print("\n  Session cleared.\n")
-            elif cmd in ("/help", "/?"):
+            elif cmd_base in ("/help", "/?"):
                 cmd_help()
-            elif cmd == "exit":
+            elif cmd_base == "exit":
                 break
             else:
-                print(f"\n  Unknown command: {cmd}\n")
+                print(f"\n  Unknown command: {cmd_base}\n")
             continue
 
         if user_input.lower() == "exit":
@@ -149,6 +169,10 @@ def main():
         mem = Memory()
         evo = EvolutionEngine()
         cmd_status(mem, evo)
+    elif args[0] == "--evolve":
+        evo = EvolutionEngine()
+        cycles = int(args[1]) if len(args) > 1 and args[1].isdigit() else 5
+        cmd_evolve(evo, cycles)
     elif args[0] == "--server":
         from .server import start_server
         start_server()
