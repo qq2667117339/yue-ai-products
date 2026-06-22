@@ -1,24 +1,24 @@
 # Python
 __pycache__/
-*.pyc
-*.pyo
+*.py[cod]
+*.so
 *.egg-info/
 dist/
+build/
+*.egg
 
-# Temp files
-*.tmp
-_*.py
-
-# State (keep .json, but not .tmp)
-engine/evolution_state.tmp
-engine/schedule.tmp
-
-# OS
-*.swp
-*.swo
-Thumbs.db
-.DS_Store
+# Virtual environments
+.venv/
+venv/
 
 # IDE
-.idea/
 .vscode/
+.idea/
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Project
+_*.py
+temp/
