@@ -548,10 +548,8 @@ class YueAPIHandler(BaseHTTPRequestHandler):
         if not message:
             return self._send_error("Message is required")
         mem.add("user", message)
-        if llm.check_available():
-            response = llm.generate(message, mem.session[-10:])
-        else:
-            response = ("[Offline mode - Ollama not detected]\n\nStart Ollama to enable full responses.")
+        # OllamaClient.generate() handles both online/offline via ResponseFallback
+        response = llm.generate(message, mem.session[-10:])
         mem.add("assistant", response)
         evo.record_interaction(caps_used=["communication", "reasoning"])
         self._send_json({

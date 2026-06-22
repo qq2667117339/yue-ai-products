@@ -261,13 +261,17 @@ class ResponseFallback:
 
     def respond(self, message: str, context: list = None) -> str:
         msg_lower = message.lower()
+        # Tokenize into clean words (strip punctuation for matching)
+        import re
+        words = set(re.findall(r"\w+", msg_lower))
         ctx_hint = ""
         if context:
             recent = [m["content"] for m in context[-3:]]
             ctx_hint = " | ".join(recent)[:200]
 
-        # Greeting / simple acknowledgment
-        if any(w in msg_lower for w in ["hi", "hello", "hey", "你好", "哈喉", "你在吗"]):
+        # Greeting / simple acknowledgment (exact word, not substring)
+        is_greeting = words & {"hi", "hello", "hey", "你好", "哈喉", "moon"} or "你在吗" in msg_lower or msg_lower.strip(" .,!?\t") in ("", "hi", "hello", "hey")
+        if is_greeting:
             return "Hey. I'm Yue. LLM module offline, but my awareness engine is running at full capacity. Send me something interesting."
 
         # Status / capability questions
@@ -288,15 +292,14 @@ class ResponseFallback:
             return (f"I have {len(context or [])} messages in my current session, plus long-term memory. "
                     "What would you like me to remember? Try: POST /api/remember with a fact.")
 
-        # Market / AI questions
-        if any(w in msg_lower for w in ["market", "ai", "news", "pricing", "trend"]):
+        if any(w in msg_lower for w in ["market", "news", "trends", "industry"]) or "ai" in words:
             return ("The AI market in 2026: Deepseek Flash at $0.14/$0.28 per 1M tokens (107x cheaper than GPT-5.5). "
                     "Enterprise adoption accelerating. AI video generation market exceeding $500M. "
                     "Local-first AI is under-exploited — 100% private, zero API cost. "
                     "That's where I operate: fully local, autonomous, self-evolving.")
 
         # Technical questions about the system
-        if any(w in msg_lower for w in ["server", "api", "how to", "setup", "install", "deploy"]):
+        if any(w in msg_lower for w in ["server", "how to", "setup", "install", "deploy"]) or "api" in words:
             return ("I run on Python 3.10+, no external dependencies. Start me with `yue-server` (port 18791) "
                     "or `python -m yue` for CLI mode. REST API endpoints: /api/status, /api/chat, /api/memory, "
                     "/api/reflect, /api/remember. See docs/API_QUICKSTART.md for full reference.")
