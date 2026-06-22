@@ -371,7 +371,7 @@ class YueAPIHandler(BaseHTTPRequestHandler):
             )
 
         mem.add("assistant", response)
-        evo.record_interaction()
+        evo.record_interaction(caps_used=["communication", "reasoning"])
 
         self._send_json({
             "response": response,

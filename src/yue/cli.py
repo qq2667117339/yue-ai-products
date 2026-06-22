@@ -1,4 +1,4 @@
-"""
+﻿"""
 CLI — Yue's interactive and autonomous command-line interface.
 """
 import sys, os, time, json, subprocess
@@ -89,7 +89,7 @@ def interactive_mode():
                     print(f"  [{role}] {m['content'][:100]}")
                 print()
             elif cmd == "/reflect":
-                evo.record_interaction()
+                evo.record_interaction(caps_used=["communication", "reasoning"])
                 print(f"\n  Reflection triggered. Score: {evo.get_status()['score']:.3f}\n")
             elif cmd == "/clear":
                 mem.session = []
@@ -116,7 +116,7 @@ def interactive_mode():
 
         # Record response
         mem.add("assistant", response)
-        evo.record_interaction()
+        evo.record_interaction(caps_used=["communication", "reasoning"])
 
 
 def single_response(prompt: str):

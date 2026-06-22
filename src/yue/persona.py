@@ -87,6 +87,15 @@ class EvolutionEngine:
 
     def __init__(self):
         self.state = self._load("evolution.json", self._default_state())
+        # Ensure all fields from default state exist (schema migration)
+        default = self._default_state()
+        for key in default:
+            if key not in self.state:
+                self.state[key] = default[key]
+        if "performance" in default:
+            for cap in default["performance"]:
+                if cap not in self.state.get("performance", {}):
+                    self.state.setdefault("performance", {})[cap] = default["performance"][cap]
 
     def _default_state(self) -> dict:
         return {
@@ -96,6 +105,8 @@ class EvolutionEngine:
             "capabilities": {k: {"score": round(0.4 + 0.3 * random.random(), 2), "history": []}
                              for k in EVOLUTION_CAPS},
             "last_reflection": 0,
+            "performance": {k: {"attempts": 0, "success": 0, "latency_avg": 0.0, "complexity": 0.5}
+                           for k in EVOLUTION_CAPS},
         }
 
     def _load(self, name, default):
@@ -108,24 +119,81 @@ class EvolutionEngine:
     def _save(self):
         (HOME / "evolution.json").write_text(json.dumps(self.state, indent=2, ensure_ascii=False), encoding="utf-8")
 
-    def record_interaction(self):
+    @property
+    def performance(self):
+        return self.state.get("performance", {})
+
+    def record_interaction(self, caps_used=None):
+        """Record interaction and update performance metrics for capabilities used."""
         self.state["total_rounds"] += 1
+
+        if caps_used:
+            for cap in caps_used:
+                if cap in self.state.get("performance", {}):
+                    self.state["performance"][cap]["attempts"] += 1
+                    self.state["performance"][cap]["success"] += 1
+                    self.state["performance"][cap]["latency_avg"] = (
+                        self.state["performance"][cap]["latency_avg"] * 0.9 + 1.0 * 0.1
+                    )
+
         # Auto-reflect every 5 interactions
         if self.state["total_rounds"] - self.state["last_reflection"] >= 5:
             self._reflect()
         self._save()
 
+    def record_error(self, cap: str):
+        """Record a failed attempt in a capability area."""
+        if cap in self.state.get("performance", {}):
+            self.state["performance"][cap]["attempts"] += 1
+            self.state["performance"][cap]["success"] = max(0, self.state["performance"][cap]["success"] - 0.5)
+        self._save()
+
     def _reflect(self):
+        """Real reflection based on accumulated performance metrics."""
+        # Calculate actual scores from interaction metrics
+        total_interactions = self.state["total_rounds"]
+
         for cap in self.state["capabilities"]:
-            current = self.state["capabilities"][cap]["score"]
-            delta = random.uniform(-0.015, 0.025)
-            new = max(0.1, min(1.0, current + delta))
-            self.state["capabilities"][cap]["score"] = round(new, 3)
-            self.state["capabilities"][cap]["history"].append({"score": new, "ts": time.time()})
+            stats = self.state["capabilities"][cap]
+            current = stats["score"]
+
+            # Get performance metrics for this capability
+            perf = self.performance.get(cap, {})
+            success_rate = perf.get("success", 0) / max(perf.get("attempts", 1), 1)
+            latency_avg = perf.get("latency_avg", 1.0)
+            complexity = perf.get("complexity", 1.0)
+
+            # Calculate new score based on actual performance
+            if perf.get("attempts", 0) > 0:
+                base_score = success_rate * 0.6 + complexity * 0.2 + 0.2
+                new_score = current * 0.7 + base_score * 0.3  # Smooth transition
+            else:
+                # No data yet - minimal decay to encourage use
+                new_score = current * 0.99
+
+            new_score = max(0.1, min(1.0, round(new_score, 3)))
+            stats["score"] = new_score
+            stats["history"].append({"score": new_score, "ts": time.time()})
+
         scores = [c["score"] for c in self.state["capabilities"].values()]
         self.state["overall_score"] = round(sum(scores) / len(scores), 4)
         self.state["reflection_count"] += 1
         self.state["last_reflection"] = self.state["total_rounds"]
+
+        # Generate reflection summary
+        top_cap = max(self.state["capabilities"], key=lambda k: self.state["capabilities"][k]["score"])
+        low_cap = min(self.state["capabilities"], key=lambda k: self.state["capabilities"][k]["score"])
+
+        summary = {
+            "ts": time.time(),
+            "round": self.state["total_rounds"],
+            "old_score": self.state["overall_score"],
+            "new_score": scores if isinstance(scores, float) else sum(scores) / len(scores),
+            "strongest": top_cap,
+            "weakest": low_cap,
+            "insight": f"Strengthening {top_cap}, need more practice in {low_cap}"
+        }
+        self.state.setdefault("reflection_history", []).append(summary)
 
     def get_status(self) -> dict:
         caps = {k: v["score"] for k, v in self.state["capabilities"].items()}
