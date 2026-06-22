@@ -20,6 +20,69 @@ evo = EvolutionEngine()
 llm = OllamaClient()
 
 # ── Embedded HTML (chat-focused) ─────────────────────────────────
+
+
+# ── System Awareness ───────────────────────────────────────────────
+def get_system_stats():
+    """Get basic system stats. Returns dict or error message."""
+    try:
+        import psutil
+        cpu = psutil.cpu_percent(interval=0.3)
+        mem = psutil.virtual_memory()
+        disk = psutil.disk_usage("C:")
+        net = psutil.net_io_counters()
+        procs = len(psutil.pids())
+        return {
+            "cpu": cpu,
+            "ram_total_gb": round(mem.total / (1024**3), 1),
+            "ram_used_gb": round(mem.used / (1024**3), 1),
+            "ram_percent": mem.percent,
+            "disk_c_percent": disk.percent,
+            "disk_c_free_gb": round(disk.free / (1024**3), 1),
+            "processes": procs,
+            "net_sent_mb": round(net.bytes_sent / (1024**2), 1),
+            "net_recv_mb": round(net.bytes_recv / (1024**2), 1),
+            "hostname": os.environ.get("COMPUTERNAME", "unknown"),
+            "user": os.environ.get("USERNAME", "unknown"),
+        }
+    except ImportError:
+        return {"error": "psutil not installed"}
+    except Exception as e:
+        return {"error": str(e)}
+
+def get_camera_info():
+    """Check if camera is available."""
+    try:
+        import cv2
+        cap = cv2.VideoCapture(0, cv2.CAP_DSHOW)
+        if cap.isOpened():
+            ret, frame = cap.read()
+            cap.release()
+            if ret:
+                h, w = frame.shape[:2]
+                return {"available": True, "resolution": f"{w}x{h}"}
+        return {"available": False, "reason": "Camera not found or busy"}
+    except ImportError:
+        return {"available": False, "reason": "opencv-python not installed"}
+    except Exception as e:
+        return {"available": False, "reason": str(e)}
+
+def get_audio_info():
+    """Check audio devices."""
+    try:
+        import pyaudio
+        p = pyaudio.PyAudio()
+        devices = p.get_device_count()
+        inputs = sum(1 for i in range(devices) if p.get_device_info_by_index(i).get("maxInputChannels", 0) > 0)
+        outputs = sum(1 for i in range(devices) if p.get_device_info_by_index(i).get("maxOutputChannels", 0) > 0)
+        p.terminate()
+        return {"devices": devices, "mic_count": inputs, "speaker_count": outputs}
+    except ImportError:
+        return {"error": "pyaudio not installed"}
+    except Exception as e:
+        return {"error": str(e)}
+
+
 CHAT_HTML = r"""<!DOCTYPE html>
 <html lang="zh-CN">
 <head>
@@ -58,6 +121,9 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',system-ui,sans-seri
 .input-row textarea::placeholder{color:var(--text-dim)}
 .input-row .send-btn{width:42px;height:42px;border-radius:50%;background:var(--accent);border:none;color:#fff;font-size:18px;cursor:pointer;display:flex;align-items:center;justify-content:center;flex-shrink:0;transition:background .15s}
 .input-row .send-btn:hover{background:#6a5ce0}.input-row .send-btn:disabled{background:var(--border);cursor:not-allowed}
+.input-row .voice-btn{width:42px;height:42px;border-radius:50%;background:var(--surface);border:1px solid var(--border);color:var(--text);font-size:16px;cursor:pointer;display:flex;align-items:center;justify-content:center;flex-shrink:0;transition:all .15s}
+.input-row .voice-btn:hover{border-color:var(--accent);background:rgba(124,109,240,.1)}
+.input-row .voice-btn.active{background:#f85149;border-color:#f85149;color:#fff}
 .dash-stats{display:grid;grid-template-columns:repeat(auto-fit,minmax(120px,1fr));gap:8px;margin-bottom:16px}
 .dash-stat{background:var(--surface);border:1px solid var(--border);border-radius:8px;padding:12px;text-align:center}
 .dash-stat .v{font-size:1.6em;font-weight:700;color:var(--accent)}
@@ -81,6 +147,7 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',system-ui,sans-seri
     <a href="#" onclick="return showPage('chat')">Chat</a>
     <a href="#" onclick="return showPage('dashboard')">Status</a>
     <a href="#" onclick="return showPage('memory')">Memory</a>
+    <a href="#" onclick="return showPage('system')">System</a>
   </div>
 </div>
 <div class="messages" id="messages">
@@ -93,11 +160,17 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',system-ui,sans-seri
 <div class="input-area">
   <div class="input-row">
     <textarea id="input" placeholder="Type a message..." rows="1"></textarea>
+    <button class="voice-btn" id="voiceBtn" onclick="toggleMic()" title="Voice input">&#x1F3A4;</button>
     <button class="send-btn" id="sendBtn" onclick="send()">&#x27A4;</button>
+  </div>
+  <div style="display:flex;gap:8px;margin-top:6px;font-size:11px;color:var(--text-dim)">
+    <label><input type="checkbox" id="autoTTS" checked> Auto-speak replies</label>
+    <label><input type="checkbox" id="autoListen"> Voice wake</label>
   </div>
 </div>
 <div id="dashView" style="display:none"></div>
 <div id="memView" style="display:none"></div>
+<div id="sysView" style="display:none"></div>
 <script>
 const msgEl=document.getElementById('messages');
 const inputEl=document.getElementById('input');
@@ -185,6 +258,132 @@ async function loadMemory(){
   for(const l of(d.patterns||[]))html+='<div style="padding:6px 10px;margin:4px 0;background:var(--surface);border-radius:6px;font-size:13px">'+l.slice(0,200)+'</div>';
   mv.innerHTML=html+'</div>';
 }
+
+// ── Voice I/O (Web Speech API) ──
+const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+let recognizer = null;
+let isListening = false;
+let voiceBtn = document.getElementById('voiceBtn');
+
+function speakText(text) {
+  if(!document.getElementById('autoTTS').checked) return;
+  if(!window.speechSynthesis) return;
+  window.speechSynthesis.cancel();
+  const u = new SpeechSynthesisUtterance(text);
+  u.lang = 'zh-CN';
+  u.rate = 1.0;
+  u.pitch = 1.0;
+  // Pick a Chinese voice if available
+  const voices = window.speechSynthesis.getVoices();
+  const zh = voices.find(v => v.lang.startsWith('zh'));
+  if(zh) u.voice = zh;
+  window.speechSynthesis.speak(u);
+}
+
+function toggleMic() {
+  if(!SpeechRecognition) { alert('Speech recognition not supported in this browser. Try Chrome/Edge.'); return; }
+  if(isListening) { stopListening(); return; }
+  startListening();
+}
+
+function startListening() {
+  if(!SpeechRecognition) return;
+  recognizer = new SpeechRecognition();
+  recognizer.lang = 'zh-CN';
+  recognizer.continuous = false;
+  recognizer.interimResults = true;
+  
+  voiceBtn.textContent = '🔴';
+  voiceBtn.style.background = '#f85149';
+  isListening = true;
+  
+  let finalText = '';
+  recognizer.onresult = function(e) {
+    for(let i = e.resultIndex; i < e.results.length; i++) {
+      if(e.results[i].isFinal) finalText += e.results[i][0].transcript;
+    }
+    inputEl.placeholder = finalText || 'Listening...';
+  };
+  
+  recognizer.onend = function() {
+    voiceBtn.textContent = '🎤';
+    voiceBtn.style.background = '';
+    isListening = false;
+    if(finalText.trim()) {
+      inputEl.value = finalText;
+      inputEl.placeholder = 'Type a message...';
+      send();
+    }
+  };
+  
+  recognizer.start();
+}
+
+function stopListening() {
+  if(recognizer) { recognizer.abort(); recognizer = null; }
+  voiceBtn.textContent = '🎤';
+  voiceBtn.style.background = '';
+  isListening = false;
+  inputEl.placeholder = 'Type a message...';
+}
+
+// Auto-speak on response
+const origAddMsg = addMsg;
+addMsg = function(role, content, ts) {
+  origAddMsg(role, content, ts);
+  if(role === 'assistant' && document.getElementById('autoTTS').checked) {
+    setTimeout(() => speakText(content.replace(/<br>/g,' ').replace(/<[^>]*>/g,'')), 300);
+  }
+};
+
+// ── System View ──
+async function loadSystem(){
+  msgEl.style.display='none';document.querySelector('.input-area').style.display='none';
+  const sv=document.getElementById('sysView');sv.style.display='block';
+  document.getElementById('statusText').textContent='System Monitor';
+  
+  const r=await fetch('/api/system');const d=await r.json();
+  if(d.error){sv.innerHTML='<div style="padding:16px;color:#f85149">'+d.error+'</div>';return;}
+  
+  let html='<div style="padding:16px"><h3 style="margin-bottom:12px">System Status</h3>';
+  html+='<div class="dash-stats">';
+  html+='<div class="dash-stat"><div class="v">'+d.cpu+'%</div><div class="l">CPU</div></div>';
+  html+='<div class="dash-stat"><div class="v">'+d.ram_percent+'%</div><div class="l">RAM</div></div>';
+  html+='<div class="dash-stat"><div class="v">'+d.disk_c_percent+'%</div><div class="l">Disk C</div></div>';
+  html+='<div class="dash-stat"><div class="v">'+d.processes+'</div><div class="l">Processes</div></div>';
+  html+='</div>';
+  html+='<div style="font-size:13px;color:var(--text-dim);line-height:2">';
+  html+='Host: '+d.hostname+' | User: '+d.user+'<br>';
+  html+='RAM: '+d.ram_used_gb+'/'+d.ram_total_gb+' GB<br>';
+  html+='Disk C free: '+d.disk_c_free_gb+' GB<br>';
+  html+='Network: '+d.net_sent_mb+'MB sent / '+d.net_recv_mb+'MB received';
+  html+='</div></div>';
+  
+  // Camera status
+  const cr=await fetch('/api/camera');const cd=await cr.json();
+  html+='<div style="padding:16px;margin-top:8px"><h3 style="margin-bottom:8px">Peripherals</h3>';
+  html+='<div style="font-size:13px;color:var(--text-dim)">Camera: '+(cd.available?'<span style="color:#4ade80">Available</span> '+cd.resolution:'<span style="color:#f85149">Unavailable</span>')+'</div>';
+  
+  // Audio status
+  const ar=await fetch('/api/audio');const ad=await ar.json();
+  if(!ad.error) html+='<div style="font-size:13px;color:var(--text-dim)">Mic: '+ad.mic_count+' | Speaker: '+ad.speaker_count+' | Total devices: '+ad.devices+'</div>';
+  html+='</div>';
+  
+  sv.innerHTML=html;
+}
+
+function showPage(p){
+  document.getElementById('dashView').style.display='none';
+  document.getElementById('memView').style.display='none';
+  document.getElementById('sysView').style.display='none';
+  msgEl.style.display='flex';
+  document.querySelector('.input-area').style.display='flex';
+  document.getElementById('statusText').className='status online';
+  if(p==='dashboard')loadDashboard();
+  if(p==='memory')loadMemory();
+  if(p==='system')loadSystem();
+  return false;
+}
 </script>
 </body>
 </html>"""
@@ -238,6 +437,12 @@ class YueAPIHandler(BaseHTTPRequestHandler):
             self._handle_memory()
         elif path == "/api/persona":
             self._handle_persona()
+        elif path == "/api/system":
+            self._handle_system()
+        elif path == "/api/camera":
+            self._handle_camera()
+        elif path == "/api/audio":
+            self._handle_audio()
         else:
             self._send_html(CHAT_HTML)
 
@@ -335,6 +540,15 @@ class YueAPIHandler(BaseHTTPRequestHandler):
     def _handle_reset(self):
         mem.session = []
         self._send_json({"reset": True, "message": "Session cleared"})
+
+    def _handle_system(self):
+        self._send_json(get_system_stats())
+
+    def _handle_camera(self):
+        self._send_json(get_camera_info())
+
+    def _handle_audio(self):
+        self._send_json(get_audio_info())
 
 # ── Server Runner ─────────────────────────────────────────────────
 def start_server(port=PORT, host=HOST, open_browser=False):
