@@ -230,14 +230,23 @@ class EvolutionEngine:
 
     def get_status(self) -> dict:
         caps = {k: v["score"] for k, v in self.state["capabilities"].items()}
+        perf = {k: {"attempts": v.get("attempts", 0), "success_rate": round(v.get("success", 0) / max(v.get("attempts", 1), 1), 3)} for k, v in self.state.get("performance", {}).items()}
         return {
             "persona": self.state["persona"],
+            "version": self.state.get("version", "1.0.0"),
             "rounds": self.state["total_rounds"],
             "score": self.state["overall_score"],
             "reflections": self.state["reflection_count"],
+            "promotions": self.state.get("promotions", 0),
             "capabilities": caps,
+            "performance": perf,
             "next_reflection_in": max(0, 5 - (self.state["total_rounds"] - self.state["last_reflection"])),
         }
+
+    def get_history(self, limit: int = 20) -> list:
+        """Return recent reflection history for timeline visualization."""
+        history = self.state.get("reflection_history", [])
+        return history[-limit:]
 
 # ── LLM integration (Ollama) ──────────────────────────────────────
 try:

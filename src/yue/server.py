@@ -545,7 +545,19 @@ class YueAPIHandler(BaseHTTPRequestHandler):
         })
 
     def _handle_history(self):
-        self._send_json({"messages": mem.session[-50:]})
+        evo_history = evo.get_history(limit=30)
+        # Format evolution history for dashboard chart
+        evo_points = []
+        for h in evo_history:
+            point = {"round": h.get("round", 0), "score": h.get("new_score", h.get("score", 0))}
+            if "old_score" in h:
+                point["old_score"] = h["old_score"]
+            evo_points.append(point)
+        self._send_json({
+            "messages": mem.session[-50:],
+            "evolution": evo_points,
+            "current_score": evo.get_status()["score"],
+        })
 
     def _handle_memory(self):
         self._send_json({
