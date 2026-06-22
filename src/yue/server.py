@@ -1,12 +1,7 @@
 """
-Yue HTTP API Server — Premium feature: REST API for the Yue persona engine.
-
-Provides a web interface and API that wraps the core persona engine.
-No external dependencies — uses Python's built-in http.server.
-
-Usage:
-    yue-server              # Start on default port 18791
-    yue-server --port 8888  # Custom port
+Yue HTTP API Server — REST API + web chat for the Yue persona engine.
+Usage:  yue-server              # Default port 18791
+        yue-server --port 8888  # Custom port
 """
 
 import json, os, sys, time, threading, webbrowser
@@ -15,228 +10,187 @@ from urllib.parse import urlparse, parse_qs
 from pathlib import Path
 from datetime import datetime, timezone
 
-# Import Yue core
 sys.path.insert(0, str(Path(__file__).parent.parent))
 from yue.persona import Memory, EvolutionEngine, OllamaClient, PERSONA, HOME
 
 HOST = "127.0.0.1"
 PORT = 18791
-
-# ── Shared state ─────────────────────────────────────────────────
 mem = Memory()
 evo = EvolutionEngine()
 llm = OllamaClient()
 
-# ── HTML Dashboard (embedded) ────────────────────────────────────
-DASHBOARD_HTML = r"""<!DOCTYPE html>
-<html lang="en">
+# ── Embedded HTML (chat-focused) ─────────────────────────────────
+CHAT_HTML = r"""<!DOCTYPE html>
+<html lang="zh-CN">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Yue Dashboard</title>
-    <style>
-        :root {
-            --bg: #0d1117; --card: #161b22; --border: #30363d;
-            --text: #c9d1d9; --heading: #f0f6fc; --accent: #58a6ff;
-            --green: #3fb950;
-        }
-        * { margin: 0; padding: 0; box-sizing: border-box; }
-        body {
-            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
-            background: var(--bg); color: var(--text); line-height: 1.6;
-        }
-        .container { max-width: 900px; margin: 0 auto; padding: 24px; }
-        h1 { color: var(--heading); font-size: 1.8em; margin-bottom: 8px; }
-        h2 { color: var(--heading); font-size: 1.3em; margin: 24px 0 12px; }
-        .card {
-            background: var(--card); border: 1px solid var(--border);
-            border-radius: 6px; padding: 20px; margin-bottom: 16px;
-        }
-        .stat-row { display: flex; gap: 12px; flex-wrap: wrap; margin-bottom: 16px; }
-        .stat {
-            background: var(--card); border: 1px solid var(--border);
-            border-radius: 6px; padding: 16px; flex: 1; min-width: 120px;
-            text-align: center;
-        }
-        .stat .value { font-size: 2em; font-weight: 700; color: var(--accent); }
-        .stat .label { font-size: 0.85em; color: #8b949e; margin-top: 4px; }
-        .cap-bar { display: flex; align-items: center; gap: 12px; margin: 6px 0; }
-        .cap-bar .name { width: 140px; text-align: right; }
-        .cap-bar .bar-bg {
-            flex: 1; height: 20px; background: var(--border);
-            border-radius: 10px; overflow: hidden;
-        }
-        .cap-bar .bar-fill { height: 100%; border-radius: 10px; transition: width 0.3s; }
-        .cap-bar .score { width: 40px; text-align: right; font-family: monospace; }
-        textarea {
-            width: 100%; min-height: 100px; background: var(--card);
-            border: 1px solid var(--border); border-radius: 6px;
-            color: var(--text); padding: 12px; font-family: inherit;
-            resize: vertical; margin-bottom: 8px;
-        }
-        .btn {
-            background: #238636; color: #fff; border: none;
-            padding: 10px 24px; border-radius: 6px; cursor: pointer;
-            font-size: 1em; font-weight: 600;
-        }
-        .btn:hover { background: #2ea043; }
-        #response { white-space: pre-wrap; font-size: 0.95em; padding: 12px; }
-        .msg { margin: 8px 0; padding: 8px 12px; border-radius: 6px; }
-        .msg.you { background: #1f2937; }
-        .msg.yue { background: #161b22; border-left: 3px solid var(--accent); }
-        .msg .ts { font-size: 0.75em; color: #484f58; }
-        .nav { display: flex; gap: 16px; margin-bottom: 20px; }
-        .nav a { color: var(--accent); text-decoration: none; padding: 4px 0; }
-        .nav a:hover { text-decoration: underline; }
-    </style>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1.0,maximum-scale=1.0">
+<title>Yue - Chat</title>
+<style>
+:root{--bg:#111118;--surface:#1a1a24;--border:#2a2a3a;--text:#e0e0f0;--text-dim:#8888a0;--accent:#7c6df0;--accent2:#58a6ff;--green:#4ade80;--msg-user:#2d2d44;--msg-assistant:#1e1e30;--radius:12px}
+*{margin:0;padding:0;box-sizing:border-box}
+body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',system-ui,sans-serif;background:var(--bg);color:var(--text);height:100vh;display:flex;flex-direction:column}
+.header{display:flex;align-items:center;gap:12px;padding:12px 16px;background:var(--surface);border-bottom:1px solid var(--border);flex-shrink:0}
+.header .avatar{width:36px;height:36px;border-radius:50%;background:linear-gradient(135deg,#7c6df0,#a78bfa);display:flex;align-items:center;justify-content:center;font-weight:800;font-size:16px;color:#fff;flex-shrink:0}
+.header .info{flex:1}.header .name{font-weight:600;font-size:15px}
+.header .status{font-size:12px;color:var(--text-dim)}.header .status.online{color:var(--green)}
+.header .nav{display:flex;gap:4px}.header .nav a{color:var(--text-dim);text-decoration:none;padding:4px 10px;border-radius:6px;font-size:12px;transition:all .15s}
+.header .nav a:hover{background:var(--border);color:var(--text)}
+.messages{flex:1;overflow-y:auto;padding:16px;display:flex;flex-direction:column;gap:8px;scroll-behavior:smooth}
+.messages .empty{text-align:center;color:var(--text-dim);padding:40px 20px;font-size:14px;line-height:1.8}
+.messages .empty .big{font-size:40px;margin-bottom:12px}
+.msg{max-width:85%;padding:10px 14px;border-radius:var(--radius);font-size:14px;line-height:1.6;word-wrap:break-word;animation:fadeIn .2s ease}
+.msg.user{align-self:flex-end;background:var(--msg-user);border-bottom-right-radius:4px}
+.msg.assistant{align-self:flex-start;background:var(--msg-assistant);border-bottom-left-radius:4px;border-left:2px solid var(--accent)}
+.msg .ts{font-size:11px;color:var(--text-dim);margin-top:4px;text-align:right}
+.msg .sender{font-size:11px;color:var(--accent2);margin-bottom:2px;font-weight:500}
+.msg.typing{background:transparent;border-left:2px solid var(--accent);padding:10px 14px}
+.msg.typing .dots{display:inline-flex;gap:4px}
+.msg.typing .dot{width:6px;height:6px;background:var(--text-dim);border-radius:50%;animation:bounce 1.4s infinite}
+.msg.typing .dot:nth-child(2){animation-delay:.2s}
+.msg.typing .dot:nth-child(3){animation-delay:.4s}
+@keyframes bounce{0%,60%,100%{transform:translateY(0)}30%{transform:translateY(-6px)}}
+@keyframes fadeIn{from{opacity:0;transform:translateY(8px)}to{opacity:1;transform:translateY(0)}}
+.input-area{flex-shrink:0;padding:12px 16px;background:var(--surface);border-top:1px solid var(--border)}
+.input-row{display:flex;gap:8px;align-items:flex-end}
+.input-row textarea{flex:1;background:var(--bg);border:1px solid var(--border);border-radius:10px;color:var(--text);padding:10px 14px;font-size:14px;font-family:inherit;resize:none;min-height:42px;max-height:120px;outline:none;transition:border-color .15s}
+.input-row textarea:focus{border-color:var(--accent)}
+.input-row textarea::placeholder{color:var(--text-dim)}
+.input-row .send-btn{width:42px;height:42px;border-radius:50%;background:var(--accent);border:none;color:#fff;font-size:18px;cursor:pointer;display:flex;align-items:center;justify-content:center;flex-shrink:0;transition:background .15s}
+.input-row .send-btn:hover{background:#6a5ce0}.input-row .send-btn:disabled{background:var(--border);cursor:not-allowed}
+.dash-stats{display:grid;grid-template-columns:repeat(auto-fit,minmax(120px,1fr));gap:8px;margin-bottom:16px}
+.dash-stat{background:var(--surface);border:1px solid var(--border);border-radius:8px;padding:12px;text-align:center}
+.dash-stat .v{font-size:1.6em;font-weight:700;color:var(--accent)}
+.dash-stat .l{font-size:11px;color:var(--text-dim);margin-top:2px}
+.dash-cap{margin:4px 0;display:flex;align-items:center;gap:8px}
+.dash-cap .n{width:110px;font-size:12px;text-align:right;color:var(--text-dim);flex-shrink:0}
+.dash-cap .b{flex:1;height:6px;background:var(--border);border-radius:3px;overflow:hidden}
+.dash-cap .f{height:100%;border-radius:3px;transition:width .3s}
+.dash-cap .s{width:32px;font-size:11px;text-align:right;font-family:monospace;color:var(--text-dim)}
+@media(max-width:500px){.header .nav{display:none}.msg{max-width:92%}}
+</style>
 </head>
 <body>
-    <div class="container">
-        <div class="nav">
-            <a href="/">Dashboard</a>
-            <a href="/chat">Chat</a>
-            <a href="/memory">Memory</a>
-            <a href="/api/status" target="_blank">API</a>
-            <a href="https://github.com/qq2667117339/yue-ai-products" target="_blank">GitHub</a>
-        </div>
-
-        <div id="root">
-            <h1 id="title">Yue</h1>
-            <p style="color: #8b949e;" id="subtitle">Loading...</p>
-            <div id="content"></div>
-        </div>
-    </div>
-
-    <script>
-    const API = '';
-
-    async function loadPage() {
-        const path = window.location.pathname;
-        document.getElementById('title').textContent = path === '/' ? 'Yue Dashboard' :
-            path === '/chat' ? 'Chat with Yue' :
-            path === '/memory' ? 'Memory Explorer' : 'Yue';
-
-        if (path === '/') { await loadDashboard(); }
-        else if (path === '/chat') { await loadChat(); }
-        else if (path === '/memory') { await loadMemory(); }
-    }
-
-    async function loadDashboard() {
-        const res = await fetch('/api/status');
-        const data = await res.json();
-        document.getElementById('subtitle').textContent =
-            `Round ${data.rounds} · Score ${data.score.toFixed(3)} · ${data.reflections} reflections`;
-
-        let html = '<div class="stat-row">';
-        html += `<div class="stat"><div class="value">${data.rounds}</div><div class="label">Rounds</div></div>`;
-        html += `<div class="stat"><div class="value">${data.score.toFixed(3)}</div><div class="label">Score</div></div>`;
-        html += `<div class="stat"><div class="value">${data.reflections}</div><div class="label">Reflections</div></div>`;
-        html += `<div class="stat"><div class="value">${data.conversations}</div><div class="label">Conversations</div></div>`;
-        html += `<div class="stat"><div class="value">${data.facts}</div><div class="label">Facts</div></div>`;
-        html += '</div>';
-
-        html += '<h2>Capabilities</h2>';
-        const colors = ['#58a6ff','#3fb950','#d29922','#f85149','#bc8cff','#79c0ff','#ffa657','#56d4dd'];
-        let i = 0;
-        for (const [name, score] of Object.entries(data.capabilities)) {
-            const pct = (score * 100).toFixed(0);
-            html += `<div class="cap-bar">
-                <div class="name">${name}</div>
-                <div class="bar-bg"><div class="bar-fill" style="width:${pct}%;background:${colors[i % colors.length]}"></div></div>
-                <div class="score">${pct}%</div>
-            </div>`;
-            i++;
-        }
-        document.getElementById('content').innerHTML = html;
-    }
-
-    async function loadChat() {
-        document.getElementById('subtitle').textContent = 'Talk to Yue (messages persist locally)';
-        let html = '<div class="card">';
-        html += '<div id="history"></div>';
-        html += '<textarea id="input" placeholder="Type a message..." rows="3"></textarea>';
-        html += '<button class="btn" onclick="sendMessage()">Send</button>';
-        html += '</div>';
-        html += '<div class="card"><div id="response">Response will appear here.</div></div>';
-        document.getElementById('content').innerHTML = html;
-
-        // Load history
-        const hres = await fetch('/api/history');
-        const hist = await hres.json();
-        const historyDiv = document.getElementById('history');
-        for (const m of hist.messages || []) {
-            const div = document.createElement('div');
-            div.className = 'msg ' + m.role;
-            div.innerHTML = '<strong>' + (m.role === 'user' ? 'you' : 'yue') + '</strong> ' +
-                m.content.slice(0, 200) + '<br><span class="ts">' + new Date(m.ts * 1000).toLocaleString() + '</span>';
-            historyDiv.appendChild(div);
-        }
-
-        document.getElementById('input').addEventListener('keydown', (e) => {
-            if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); sendMessage(); }
-        });
-    }
-
-    async function sendMessage() {
-        const input = document.getElementById('input');
-        const msg = input.value.trim();
-        if (!msg) return;
-        input.value = '';
-
-        const resp = document.getElementById('response');
-        resp.textContent = 'Yue is thinking...';
-
-        const res = await fetch('/api/chat', {
-            method: 'POST',
-            headers: {'Content-Type': 'application/json'},
-            body: JSON.stringify({message: msg})
-        });
-        const data = await res.json();
-        resp.textContent = data.response || '[No response]';
-
-        // Refresh history
-        const hres = await fetch('/api/history');
-        const hist = await hres.json();
-        const historyDiv = document.getElementById('history');
-        historyDiv.innerHTML = '';
-        for (const m of (hist.messages || []).slice(-20)) {
-            const div = document.createElement('div');
-            div.className = 'msg ' + m.role;
-            div.innerHTML = '<strong>' + (m.role === 'user' ? 'you' : 'yue') + '</strong> ' +
-                m.content.slice(0, 200) + '<br><span class="ts">' + new Date(m.ts * 1000).toLocaleString() + '</span>';
-            historyDiv.appendChild(div);
-        }
-    }
-
-    async function loadMemory() {
-        const res = await fetch('/api/memory');
-        const data = await res.json();
-        document.getElementById('subtitle').textContent = `${data.facts} facts · ${data.learnings} learnings · ${data.conversations} conversations`;
-
-        let html = '<div class="card"><h2>Facts</h2><ul>';
-        for (const f of data.facts_list || []) {
-            html += '<li>' + f.slice(0, 150) + '</li>';
-        }
-        html += '</ul></div>';
-        html += '<div class="card"><h2>Learnings</h2><ul>';
-        for (const l of data.patterns || []) {
-            html += '<li>' + l.slice(0, 150) + '</li>';
-        }
-        html += '</ul></div>';
-        document.getElementById('content').innerHTML = html;
-    }
-
-    loadPage();
-    </script>
+<div class="header">
+  <div class="avatar">Y</div>
+  <div class="info">
+    <div class="name">Yue</div>
+    <div class="status online" id="statusText">Online</div>
+  </div>
+  <div class="nav">
+    <a href="#" onclick="return showPage('chat')">Chat</a>
+    <a href="#" onclick="return showPage('dashboard')">Status</a>
+    <a href="#" onclick="return showPage('memory')">Memory</a>
+  </div>
+</div>
+<div class="messages" id="messages">
+  <div class="empty" id="emptyMsg">
+    <div class="big">&#x1F319;</div>
+    <div>Talk to Yue.</div>
+    <div style="font-size:12px;color:#666">Messages persist across sessions.</div>
+  </div>
+</div>
+<div class="input-area">
+  <div class="input-row">
+    <textarea id="input" placeholder="Type a message..." rows="1"></textarea>
+    <button class="send-btn" id="sendBtn" onclick="send()">&#x27A4;</button>
+  </div>
+</div>
+<div id="dashView" style="display:none"></div>
+<div id="memView" style="display:none"></div>
+<script>
+const msgEl=document.getElementById('messages');
+const inputEl=document.getElementById('input');
+const sendBtn=document.getElementById('sendBtn');
+const emptyMsg=document.getElementById('emptyMsg');
+function addMsg(role,content,ts){
+  emptyMsg.style.display='none';
+  const d=document.createElement('div');
+  d.className='msg '+role;
+  const t=ts?new Date(ts*1000).toLocaleTimeString([],{hour:'2-digit',minute:'2-digit'}):new Date().toLocaleTimeString([],{hour:'2-digit',minute:'2-digit'});
+  d.innerHTML=(role==='assistant'?'<div class="sender">Yue</div>':'')+content+'<div class="ts">'+t+'</div>';
+  msgEl.appendChild(d);
+  msgEl.scrollTop=msgEl.scrollHeight;
+}
+function typingOn(){
+  const d=document.createElement('div');
+  d.className='msg typing';d.id='typing';
+  d.innerHTML='<div class="dots"><span class="dot"></span><span class="dot"></span><span class="dot"></span></div>';
+  msgEl.appendChild(d);msgEl.scrollTop=msgEl.scrollHeight;
+}
+function typingOff(){const e=document.getElementById('typing');if(e)e.remove()}
+async function send(){
+  const msg=inputEl.value.trim();
+  if(!msg)return;
+  inputEl.value='';inputEl.style.height='auto';sendBtn.disabled=true;
+  addMsg('user',msg.replace(/\n/g,'<br>'));
+  typingOn();
+  try{
+    const r=await fetch('/api/chat',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({message:msg})});
+    const d=await r.json();
+    typingOff();
+    addMsg('assistant',(d.response||'[No response]').replace(/\n/g,'<br>'));
+  }catch(e){typingOff();addMsg('assistant','[Connection error]');}
+  sendBtn.disabled=false;msgEl.scrollTop=msgEl.scrollHeight;
+}
+inputEl.addEventListener('keydown',e=>{if(e.key==='Enter'&&!e.shiftKey){e.preventDefault();send()}});
+inputEl.addEventListener('input',()=>{inputEl.style.height='auto';inputEl.style.height=Math.min(inputEl.scrollHeight,120)+'px'});
+async function loadHistory(){
+  const r=await fetch('/api/history');
+  const d=await r.json();
+  for(const m of(d.messages||[]).slice(-50)){
+    addMsg(m.role,(m.content||'').slice(0,5000).replace(/\n/g,'<br>'),m.ts);
+  }
+}
+loadHistory();
+function showPage(p){
+  document.getElementById('dashView').style.display='none';
+  document.getElementById('memView').style.display='none';
+  msgEl.style.display='flex';
+  document.querySelector('.input-area').style.display='flex';
+  document.getElementById('statusText').className='status online';
+  if(p==='dashboard')loadDashboard();
+  if(p==='memory')loadMemory();
+  return false;
+}
+async function loadDashboard(){
+  msgEl.style.display='none';document.querySelector('.input-area').style.display='none';
+  const dv=document.getElementById('dashView');dv.style.display='block';
+  const r=await fetch('/api/status');const d=await r.json();
+  document.getElementById('statusText').textContent='Round '+d.rounds+' Score '+d.score.toFixed(2);
+  let html='<div class="dash-stats">';
+  html+='<div class="dash-stat"><div class="v">'+d.rounds+'</div><div class="l">Rounds</div></div>';
+  html+='<div class="dash-stat"><div class="v">'+d.score.toFixed(3)+'</div><div class="l">Score</div></div>';
+  html+='<div class="dash-stat"><div class="v">'+d.reflections+'</div><div class="l">Reflections</div></div>';
+  html+='<div class="dash-stat"><div class="v">'+d.conversations+'</div><div class="l">Conversations</div></div>';
+  html+='<div class="dash-stat"><div class="v">'+d.facts+'</div><div class="l">Facts</div></div>';
+  html+='</div><h3 style="margin:16px 0 12px;font-size:14px;color:var(--text-dim)">Capabilities</h3>';
+  const cols=['#7c6df0','#58a6ff','#4ade80','#fbbf24','#f85149','#bc8cff','#ffa657','#56d4dd'];
+  let i=0;
+  for(const[n,s]of Object.entries(d.capabilities||{})){
+    const p=(s*100).toFixed(0);
+    html+='<div class="dash-cap"><div class="n">'+n+'</div><div class="b"><div class="f" style="width:'+p+'%;background:'+cols[i%cols.length]+'"></div></div><div class="s">'+p+'%</div></div>';
+    i++;
+  }
+  dv.innerHTML='<div style="padding:16px">'+html+'</div>';
+}
+async function loadMemory(){
+  msgEl.style.display='none';document.querySelector('.input-area').style.display='none';
+  const mv=document.getElementById('memView');mv.style.display='block';
+  const r=await fetch('/api/memory');const d=await r.json();
+  document.getElementById('statusText').textContent=d.facts+' facts';
+  let html='<div style="padding:16px"><h3 style="margin-bottom:12px;font-size:14px;color:var(--text-dim)">'+d.facts+' facts</h3>';
+  for(const f of(d.facts_list||[]))html+='<div style="padding:6px 10px;margin:4px 0;background:var(--surface);border-radius:6px;font-size:13px">'+f.slice(0,200)+'</div>';
+  html+='<h3 style="margin:16px 0 12px;font-size:14px;color:var(--text-dim)">Learnings</h3>';
+  for(const l of(d.patterns||[]))html+='<div style="padding:6px 10px;margin:4px 0;background:var(--surface);border-radius:6px;font-size:13px">'+l.slice(0,200)+'</div>';
+  mv.innerHTML=html+'</div>';
+}
+</script>
 </body>
-</html>
-"""
-
+</html>"""
 
 # ── HTTP Request Handler ──────────────────────────────────────────
 class YueAPIHandler(BaseHTTPRequestHandler):
-    """REST API + Web Dashboard for Yue persona engine."""
-
     def _send_json(self, data, status=200):
         self.send_response(status)
         self.send_header("Content-Type", "application/json; charset=utf-8")
@@ -259,27 +213,23 @@ class YueAPIHandler(BaseHTTPRequestHandler):
         length = int(self.headers.get("Content-Length", 0))
         if length == 0:
             return {}
-        body = self.rfile.read(length)
         try:
-            return json.loads(body)
+            return json.loads(self.rfile.read(length))
         except json.JSONDecodeError:
             return {}
 
     def log_message(self, fmt, *args):
-        """Suppress default logging, use cleaner format."""
         ts = datetime.now().strftime("%H:%M:%S")
         print(f"  [API {ts}] {self.command} {self.path}")
 
-    # ── Routes ──────────────────────────────────────────────────
     def do_GET(self):
         path = urlparse(self.path).path
-
-        if path == "/" or path == "/dashboard":
-            self._send_html(DASHBOARD_HTML)
-        elif path == "/chat":
-            self._send_html(DASHBOARD_HTML)
+        if path in ("/", "/chat"):
+            self._send_html(CHAT_HTML)
+        elif path == "/dashboard":
+            self._send_html(CHAT_HTML)
         elif path == "/memory":
-            self._send_html(DASHBOARD_HTML)
+            self._send_html(CHAT_HTML)
         elif path == "/api/status":
             self._handle_status()
         elif path == "/api/history":
@@ -289,12 +239,10 @@ class YueAPIHandler(BaseHTTPRequestHandler):
         elif path == "/api/persona":
             self._handle_persona()
         else:
-            # SPA: serve dashboard for all frontend routes
-            self._send_html(DASHBOARD_HTML)
+            self._send_html(CHAT_HTML)
 
     def do_POST(self):
         path = urlparse(self.path).path
-
         if path == "/api/chat":
             self._handle_chat()
         elif path == "/api/reflect":
@@ -332,9 +280,7 @@ class YueAPIHandler(BaseHTTPRequestHandler):
         })
 
     def _handle_history(self):
-        self._send_json({
-            "messages": mem.session[-50],
-        })
+        self._send_json({"messages": mem.session[-50:]})
 
     def _handle_memory(self):
         self._send_json({
@@ -347,32 +293,20 @@ class YueAPIHandler(BaseHTTPRequestHandler):
         })
 
     def _handle_persona(self):
-        self._send_json({
-            "persona": PERSONA,
-            "model": llm.model,
-            "ollama_host": llm.base,
-        })
+        self._send_json({"persona": PERSONA, "model": llm.model, "ollama_host": llm.base})
 
     def _handle_chat(self):
         body = self._read_body()
         message = body.get("message", "").strip()
         if not message:
             return self._send_error("Message is required")
-
         mem.add("user", message)
-
         if llm.check_available():
             response = llm.generate(message, mem.session[-10:])
         else:
-            response = (
-                f"[Yue is currently in offline mode - Ollama not detected]\n\n"
-                f"I received: \"{message}\"\n\n"
-                f"Start Ollama to enable full responses: `ollama run qwen2.5:32b`"
-            )
-
+            response = ("[Offline mode - Ollama not detected]\n\nStart Ollama to enable full responses.")
         mem.add("assistant", response)
         evo.record_interaction(caps_used=["communication", "reasoning"])
-
         self._send_json({
             "response": response,
             "round": evo.get_status()["rounds"],
@@ -396,49 +330,37 @@ class YueAPIHandler(BaseHTTPRequestHandler):
         if not fact:
             return self._send_error("Fact is required")
         mem.remember_fact(fact)
-        self._send_json({
-            "memorized": True,
-            "fact": fact,
-            "total_facts": len(mem.longterm.get("facts", [])),
-        })
+        self._send_json({"memorized": True, "fact": fact, "total_facts": len(mem.longterm.get("facts", []))})
 
     def _handle_reset(self):
         mem.session = []
         self._send_json({"reset": True, "message": "Session cleared"})
 
-
 # ── Server Runner ─────────────────────────────────────────────────
 def start_server(port=PORT, host=HOST, open_browser=False):
-    """Start the Yue API server."""
     server = HTTPServer((host, port), YueAPIHandler)
     url = f"http://{host}:{port}"
-
-    print(f"  Yue API Server running at:")
-    print(f"    Dashboard: {url}")
-    print(f"    API:       {url}/api/status")
-    print(f"    Chat:      {url}/chat")
-    print()
-    print(f"  Capabilities: {evo.get_status()['score']:.3f}")
-    print(f"  Ollama: {'Connected' if llm.check_available() else 'Not running (offline mode)'}")
-    print()
-
+    status = evo.get_status()
+    print(f"  Yue Chat Server running at:")
+    print(f"    Chat:   {url}/chat (opens in browser)")
+    print(f"    Status: {url}/dashboard")
+    print(f"    Memory: {url}/memory")
+    print(f"    API:    {url}/api/status")
+    print(f"  Score: {status['score']:.3f} | Rounds: {status['rounds']}")
+    print(f"  Ollama: {'Connected' if llm.check_available() else 'Not running (offline)'}")
     if open_browser:
-        webbrowser.open(url)
-
+        webbrowser.open(url + "/chat")
     try:
         server.serve_forever()
     except KeyboardInterrupt:
         print("\n  Server stopped.")
         server.server_close()
 
-
 def main():
-    """CLI entry point for the server."""
     args = sys.argv[1:]
     port = PORT
     host = HOST
     browser = False
-
     for i, arg in enumerate(args):
         if arg == "--port" and i + 1 < len(args):
             port = int(args[i + 1])
@@ -449,9 +371,7 @@ def main():
         elif arg in ("--help", "-h"):
             print("Usage: yue-server [--port PORT] [--host HOST] [--open]")
             sys.exit(0)
-
     start_server(port=port, host=host, open_browser=browser)
-
 
 if __name__ == "__main__":
     main()
