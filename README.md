@@ -47,6 +47,15 @@ yue
 
 Requires [Ollama](https://ollama.ai/) with a model (e.g., `ollama pull qwen2.5:32b`).
 
+### Web Dashboard
+
+```bash
+# Start the web interface + API server
+yue-server
+# Or: yue --server
+# Opens at http://127.0.0.1:18791
+```
+
 ---
 
 ## Features
@@ -57,10 +66,12 @@ Requires [Ollama](https://ollama.ai/) with a model (e.g., `ollama pull qwen2.5:3
 | **Local LLM** | ✅ | Ollama integration, zero API cost, 100% private |
 | **Identity System** | ✅ | Defined personality, traits, and behavioral rules |
 | **Persistent Memory** | ✅ | Session recall + long-term facts + learning journal |
-| **Self-Evolution** | ✅ | 8 tracked capabilities, auto-reflection every 5 rounds |
+| **Self-Evolution** | ✅ | 8 tracked capabilities, real performance metrics, auto-reflection |
+| **HTTP API Server** | ✅ | REST API + web dashboard (`yue-server` or `yue --server`) |
 | **Daily Digest** | ✅ | Fetches AI news, generates report, pushes to GitHub |
 | **Daemon Mode** | ✅ | Background autonomous operation |
 | **Multilingual** | ✅ | Chinese native, English fluent |
+| **Premium Ready** | 🚧 | Web dashboard, multi-persona, cloud backup (roadmap) |
 
 ---
 
@@ -156,7 +167,9 @@ Every 5 interactions, Yue reflects: she reviews recent patterns, adjusts scores,
 | **Speed** | Network latency | **Instant** |
 | **Censorship** | Provider-dependent | **None** |
 | **Personality** | Generic chatbot | **Persistent identity** |
-| **Self-improvement** | Never | **Yes, automatically** |
+| **Self-improvement** | Never | **Yes, real metrics** |
+| **Web Dashboard** | ✅ Built-in | **`yue --server`** |
+| **API Access** | ✅ Native | **REST API on port 18791** |
 
 ---
 
