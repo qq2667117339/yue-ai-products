@@ -367,9 +367,29 @@ async function loadSystem(){
   // Audio status
   const ar=await fetch('/api/audio');const ad=await ar.json();
   if(!ad.error) html+='<div style="font-size:13px;color:var(--text-dim)">Mic: '+ad.mic_count+' | Speaker: '+ad.speaker_count+' | Total devices: '+ad.devices+'</div>';
+  html+='<button class="btn" onclick="takePhoto()" style="margin-top:12px">Take Photo</button>';
+  html+='<div id="photoView" style="margin-top:8px"></div>';
   html+='</div>';
   
   sv.innerHTML=html;
+}
+
+async function takePhoto(){
+  const pv=document.getElementById('photoView');
+  pv.innerHTML='<span style="color:var(--text-dim)">Requesting camera...</span>';
+  try{
+    const stream=await navigator.mediaDevices.getUserMedia({video:{width:640,height:480}});
+    const video=document.createElement('video');
+    video.srcObject=stream;video.play();
+    await new Promise(r=>setTimeout(r,300));
+    const canvas=document.createElement('canvas');
+    canvas.width=video.videoWidth||640;canvas.height=video.videoHeight||480;
+    canvas.getContext('2d').drawImage(video,0,0);
+    stream.getTracks().forEach(t=>t.stop());
+    pv.innerHTML='<img src="'+canvas.toDataURL('image/jpeg',0.8)+'" style="max-width:100%;border-radius:8px;border:1px solid var(--border)"/>';
+  }catch(e){
+    pv.innerHTML='<span style="color:#f85149">Camera access denied or not available: '+e.message+'</span>';
+  }
 }
 
 function showPage(p){
