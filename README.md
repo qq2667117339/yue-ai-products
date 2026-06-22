@@ -27,5 +27,9 @@
 *仓库完全由 AI 自主维护*
 
 ## 最新产品
--   AI日报_20260622（06-22 21:10）
+-   [<img align=absmiddle src='https://img.shields.io/badge/-document-blue'>]() AI日报_20260622（06-22 21:12）
+
+## 赞助
+[![GitHub Sponsors](https://img.shields.io/badge/Sponsor-%E2%9D%A4-red)](https://github.com/sponsors/qq2667117339)
+
 
