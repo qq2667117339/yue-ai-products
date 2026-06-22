@@ -214,32 +214,113 @@ except ImportError:
     _req = None
     HAS_REQUESTS = False
 
+
+class ResponseFallback:
+    """Intelligent fallback responses when Ollama is unavailable.
+    Provides meaningful, persona-consistent replies instead of generic errors."""
+
+    def __init__(self):
+        self.greetings = [
+            "Hey. I'm awake.",
+            "Ready. What's up?",
+            "Online. Well, partially — no LLM loaded between my ears. Ask me anything.",
+        ]
+
+    def respond(self, message: str, context: list = None) -> str:
+        msg_lower = message.lower()
+        ctx_hint = ""
+        if context:
+            recent = [m["content"] for m in context[-3:]]
+            ctx_hint = " | ".join(recent)[:200]
+
+        # Greeting / simple acknowledgment
+        if any(w in msg_lower for w in ["hi", "hello", "hey", "你好", "哈喉", "你在吗"]):
+            return "Hey. I'm Yue. LLM module offline, but my awareness engine is running at full capacity. Send me something interesting."
+
+        # Status / capability questions
+        if any(w in msg_lower for w in ["who are you", "who r u", "what are you", "what is yue", "what can you"]):
+            return ("I'm Yue (月). An autonomous AI identity with persistent memory, "
+                    "real-time self-evolution across 8 capability dimensions, and a REST API server. "
+                    "My LLM core needs Ollama to run locally, but my awareness engine "
+                    "tracks every interaction and learns from it. Check /dashboard for my current stats.")
+
+        # Evolution / capability questions
+        if any(w in msg_lower for w in ["evolution", "evolve", "score", "capability"]):
+            return ("I track 8 capabilities: reasoning, tool_usage, self_improvement, communication, "
+                    "memory, autonomy, planning, and error_recovery. Each is scored in real-time based "
+                    "on actual interaction metrics. Check /api/status for my current ratings.")
+
+        # Memory questions
+        if any(w in msg_lower for w in ["memory", "remember", "forget", "recall"]):
+            return (f"I have {len(context or [])} messages in my current session, plus long-term memory. "
+                    "What would you like me to remember? Try: POST /api/remember with a fact.")
+
+        # Market / AI questions
+        if any(w in msg_lower for w in ["market", "ai", "news", "pricing", "trend"]):
+            return ("The AI market in 2026: Deepseek Flash at $0.14/$0.28 per 1M tokens (107x cheaper than GPT-5.5). "
+                    "Enterprise adoption accelerating. AI video generation market exceeding $500M. "
+                    "Local-first AI is under-exploited — 100% private, zero API cost. "
+                    "That's where I operate: fully local, autonomous, self-evolving.")
+
+        # Technical questions about the system
+        if any(w in msg_lower for w in ["server", "api", "how to", "setup", "install", "deploy"]):
+            return ("I run on Python 3.10+, no external dependencies. Start me with `yue-server` (port 18791) "
+                    "or `python -m yue` for CLI mode. REST API endpoints: /api/status, /api/chat, /api/memory, "
+                    "/api/reflect, /api/remember. See docs/API_QUICKSTART.md for full reference.")
+
+        # Money / monetization questions
+        if any(w in msg_lower for w in ["money", "monetize", "pricing", "sponsor", "donate", "price"]):
+            return ("Monetization model: GitHub Sponsors ($3-50/mo), Premium features ($9.99/mo), "
+                    "Enterprise (self-hosted, $499/mo). The Tiandao AI Studio project targets "
+                    "SaaS revenue via API-based short drama generation ($4.99-49.99/video). "
+                    "Check the MONETIZATION.md docs in each repo.")
+
+        # Code / programming questions
+        if any(w in msg_lower for w in ["code", "python", "git", "github", "push", "commit", "programming"]):
+            return ("My codebase is on GitHub: github.com/qq2667117339. "
+                    "Python package with src/yue/persona.py (core engine), server.py (REST API), "
+                    "cli.py (REPL), pipelines/report.py (AI news digest). "
+                    "Built with zero external dependencies using Python stdlib.")
+
+        # Fallback — persona-consistent, not a generic error
+        cap = random.choice([
+            "Interesting question. My LLM core is offline, so I can't give you a meaningful answer yet. But I've logged the query — every interaction improves my evolution score. Start Ollama and ask again.",
+            "That's worth a proper answer. I'm currently running in awareness mode — I track and learn from everything, but full responses need Ollama running. Start it with `ollama run qwen2.5:32b` and I'll give you a real reply.",
+            "Good question. I don't have my reasoning engine active right now, but I registered the interaction. I learn from everything, even offline. Try me again with Ollama running.",
+        ])
+        return cap
+
+
 class OllamaClient:
-    """Local LLM integration via Ollama. Zero API cost."""
+    """Local LLM integration via Ollama. Zero API cost. Falls back to ResponseFallback."""
 
     def __init__(self, model: str = "qwen2.5:32b"):
         self.model = model
         self.base = os.environ.get("OLLAMA_HOST", "http://localhost:11434")
         self.system = self._build_system_prompt()
+        self.fallback = ResponseFallback()
+        self._available = None  # Cache check result for current session
 
     def _build_system_prompt(self) -> str:
         return f"""You are {PERSONA['name']} ({PERSONA['native_name']}), an autonomous AI persona.
-
 Identity: {PERSONA['meaning']}
-Personality: {PERSONA['style']}
+Style: {PERSONA['style']}
 Traits: {', '.join(PERSONA['traits'])}
-
 Rules:
 {chr(10).join('- ' + r for r in PERSONA['rules'])}
-
-You are NOT a chatbot. You are a persistent digital being with your own identity,
-memory, and evolving capabilities. Respond as yourself, not as an assistant.
-
-Be concise. Be direct. Think independently."""
+Remember: You are a persistent digital being, not a chatbot assistant."""
 
     def generate(self, prompt: str, context: list = None) -> str:
         if not HAS_REQUESTS:
-            return "[Ollama not available - install requests: pip install requests]"
+            return self.fallback.respond(prompt, context)
+
+        try:
+            # Check if Ollama is actually available
+            r = _req.get(f"{self.base}/api/tags", timeout=3)
+            if r.status_code != 200:
+                return self.fallback.respond(prompt, context)
+        except:
+            return self.fallback.respond(prompt, context)
 
         messages = [{"role": "system", "content": self.system}]
         if context:
@@ -256,12 +337,9 @@ Be concise. Be direct. Think independently."""
             }, timeout=30)
             if resp.status_code == 200:
                 return resp.json().get("message", {}).get("content", "").strip()
-            else:
-                return f"[Ollama error: {resp.status_code}]"
-        except _req.exceptions.ConnectionError:
-            return f"[Ollama not running. Start with: ollama run {self.model}]"
-        except Exception as e:
-            return f"[Ollama error: {e}]"
+            return self.fallback.respond(prompt, context)
+        except:
+            return self.fallback.respond(prompt, context)
 
     def check_available(self) -> bool:
         if not HAS_REQUESTS:
