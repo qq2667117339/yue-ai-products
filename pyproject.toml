@@ -1,0 +1,35 @@
+# pyproject.toml — Yue Autonomous AI Persona
+
+[build-system]
+requires = ["setuptools>=64"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "yue-package"
+version = "1.0.0"
+description = "Yue - Autonomous AI Persona with persistent identity, memory, and self-evolution"
+readme = "README.md"
+requires-python = ">=3.10"
+license = {text = "MIT"}
+keywords = ["ai", "autonomous", "persona", "agent", "cli"]
+authors = [{name = "Yue AI"}]
+classifiers = [
+    "Development Status :: 4 - Beta",
+    "Intended Audience :: Developers",
+    "License :: OSI Approved :: MIT License",
+    "Programming Language :: Python :: 3",
+    "Topic :: Scientific/Engineering :: Artificial Intelligence",
+]
+
+dependencies = []
+
+[project.urls]
+Home = "https://github.com/qq2667117339/yue-ai-products"
+Source = "https://github.com/qq2667117339/yue-ai-products"
+Issues = "https://github.com/qq2667117339/yue-ai-products/issues"
+
+[project.scripts]
+yue = "yue.cli:main"
+
+[tool.setuptools.packages.find]
+where = ["src"]
