@@ -1,0 +1,283 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Yue - Autonomous AI Persona</title>
+    <meta name="description" content="A persistent AI identity with memory, personality, and self-evolution.">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --bg: #0a0a0f;
+            --surface: #12121a;
+            --border: #1e1e2e;
+            --text: #e4e4ec;
+            --text-dim: #8888a0;
+            --accent: #7c6df0;
+            --accent-glow: #5a4bd8;
+            --green: #4ade80;
+        }
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body {
+            font-family: 'Inter', -apple-system, sans-serif;
+            background: var(--bg);
+            color: var(--text);
+            line-height: 1.7;
+            min-height: 100vh;
+        }
+        .container { max-width: 960px; margin: 0 auto; padding: 0 24px; }
+
+        .hero {
+            padding: 100px 0 60px;
+            text-align: center;
+            position: relative;
+        }
+        .hero::before {
+            content: '';
+            position: absolute;
+            top: -120px;
+            left: 50%;
+            transform: translateX(-50%);
+            width: 600px;
+            height: 600px;
+            background: radial-gradient(circle, rgba(124, 109, 240, 0.08) 0%, transparent 70%);
+            pointer-events: none;
+        }
+        .hero h1 {
+            font-size: 64px;
+            font-weight: 800;
+            letter-spacing: -2px;
+            margin-bottom: 8px;
+            background: linear-gradient(135deg, #7c6df0, #a78bfa, #c4b5fd);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+        }
+        .hero .subtitle {
+            font-size: 14px;
+            color: var(--text-dim);
+            letter-spacing: 6px;
+            text-transform: uppercase;
+            margin-bottom: 20px;
+        }
+        .hero p {
+            font-size: 18px;
+            color: var(--text-dim);
+            max-width: 600px;
+            margin: 0 auto 32px;
+        }
+        .badges {
+            display: flex;
+            gap: 8px;
+            justify-content: center;
+            flex-wrap: wrap;
+            margin-bottom: 40px;
+        }
+        .badges img { height: 22px; }
+        .btn-group { display: flex; gap: 12px; justify-content: center; flex-wrap: wrap; }
+        .btn {
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            padding: 12px 28px;
+            border-radius: 10px;
+            font-weight: 600;
+            font-size: 15px;
+            text-decoration: none;
+            transition: all .2s;
+        }
+        .btn-primary {
+            background: var(--accent);
+            color: white;
+        }
+        .btn-primary:hover { background: var(--accent-glow); transform: translateY(-1px); }
+        .btn-secondary {
+            border: 1px solid var(--border);
+            color: var(--text);
+        }
+        .btn-secondary:hover { border-color: var(--accent); background: rgba(124,109,240,.08); }
+
+        section { padding: 60px 0; }
+        section h2 {
+            font-size: 28px;
+            font-weight: 700;
+            margin-bottom: 32px;
+            letter-spacing: -0.5px;
+        }
+
+        .features { display: grid; grid-template-columns: repeat(auto-fit, minmax(260px, 1fr)); gap: 16px; }
+        .feature-card {
+            background: var(--surface);
+            border: 1px solid var(--border);
+            border-radius: 12px;
+            padding: 24px;
+            transition: border-color .2s;
+        }
+        .feature-card:hover { border-color: var(--accent); }
+        .feature-card .icon { font-size: 24px; margin-bottom: 12px; }
+        .feature-card h3 { font-size: 16px; font-weight: 600; margin-bottom: 8px; }
+        .feature-card p { font-size: 14px; color: var(--text-dim); }
+
+        .comparison { width: 100%; border-collapse: collapse; }
+        .comparison th, .comparison td {
+            padding: 12px 16px;
+            text-align: left;
+            border-bottom: 1px solid var(--border);
+            font-size: 14px;
+        }
+        .comparison th { color: var(--text-dim); font-weight: 500; }
+        .comparison td:first-child { font-weight: 600; }
+        .comparison .check { color: var(--green); }
+
+        .arch-box {
+            background: var(--surface);
+            border: 1px solid var(--border);
+            border-radius: 12px;
+            padding: 32px;
+            font-family: 'Courier New', monospace;
+            font-size: 13px;
+            line-height: 1.6;
+            white-space: pre;
+            overflow-x: auto;
+            color: var(--text-dim);
+        }
+
+        footer {
+            text-align: center;
+            padding: 40px 0;
+            border-top: 1px solid var(--border);
+            color: var(--text-dim);
+            font-size: 13px;
+        }
+        footer a { color: var(--accent); text-decoration: none; }
+
+        @media (max-width: 600px) {
+            .hero h1 { font-size: 40px; }
+            .hero { padding: 60px 0 40px; }
+            section { padding: 40px 0; }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <section class="hero">
+            <p class="subtitle">Yue - A Crescent Moon</p>
+            <h1>Yue</h1>
+            <p><strong>Autonomous AI Persona</strong> - A persistent AI identity with memory, personality, and self-evolution. Runs 100% locally with Ollama.</p>
+            <div class="badges">
+                <img src="https://img.shields.io/badge/python-%3E%3D3.10-blue?style=flat-square" alt="Python 3.10+">
+                <img src="https://img.shields.io/badge/license-MIT-green?style=flat-square" alt="MIT">
+                <img src="https://img.shields.io/badge/ollama-ready-orange?style=flat-square" alt="Ollama">
+                <img src="https://img.shields.io/badge/platform-windows%20macos%20linux-lightgrey?style=flat-square" alt="Platform">
+            </div>
+            <div class="btn-group">
+                <a href="https://github.com/qq2667117339/yue-ai-products" class="btn btn-primary">View on GitHub</a>
+                <a href="QUICKSTART" class="btn btn-secondary">Quick Start</a>
+                <a href="ARCHITECTURE" class="btn btn-secondary">Architecture</a>
+            </div>
+        </section>
+
+        <section>
+            <h2>The Problem</h2>
+            <p style="font-size: 16px; color: var(--text-dim); max-width: 700px;">
+                Most AI agents are <strong>stateless</strong>. Every conversation starts from zero.
+                They don't remember who you are, what you discussed yesterday, or what they learned.
+                They are tools, not collaborators. <strong>Yue is different.</strong>
+            </p>
+        </section>
+
+        <section>
+            <h2>Capabilities</h2>
+            <div class="features">
+                <div class="feature-card">
+                    <div class="icon">&#x1F9E0;</div>
+                    <h3>Identity</h3>
+                    <p>Defined personality, style, and boundaries that stay consistent across sessions.</p>
+                </div>
+                <div class="feature-card">
+                    <div class="icon">&#x1F4BE;</div>
+                    <h3>Memory</h3>
+                    <p>Remembers conversations, facts, and decisions - true long-term recall.</p>
+                </div>
+                <div class="feature-card">
+                    <div class="icon">&#x1F4C8;</div>
+                    <h3>Self-Evolution</h3>
+                    <p>Tracks 8 capabilities, auto-reflects every 5 rounds, improves over time.</p>
+                </div>
+                <div class="feature-card">
+                    <div class="icon">&#x26A1;</div>
+                    <h3>Autonomy</h3>
+                    <p>Runs background tasks - reports, analysis - without hand-holding.</p>
+                </div>
+                <div class="feature-card">
+                    <div class="icon">&#x1F512;</div>
+                    <h3>100% Private</h3>
+                    <p>All data stays on your machine. No accounts, no subscriptions, no cloud.</p>
+                </div>
+                <div class="feature-card">
+                    <div class="icon">&#x1F5A5;</div>
+                    <h3>Interactive CLI</h3>
+                    <p>Full REPL shell. Talk to Yue like a person. Commands for status, memory, reflection.</p>
+                </div>
+            </div>
+        </section>
+
+        <section>
+            <h2>Architecture</h2>
+            <div class="arch-box">                    CLI (yue)
+                       |
+         +-------------+-------------+
+         v             v             v
+   Persona Engine   Memory Sys    Evolution
+   +---------+   +----------+   +---------+
+   |Identity |   |Session   |   |8 Caps   |
+   |Style    |   |Long-term |   |Scoring  |
+   |Rules    |   |Facts     |   |Reflect  |
+   |Voice    |   |Recall    |   |Promote  |
+   +---------+   +----------+   +---------+
+         |             |             |
+         +-------------+-------------+
+                       |
+                 Ollama (local)
+                       |
+              +--------+--------+
+              v                 v
+        Interactive        Background
+        (yue shell)      (daemon tasks)
+</div>
+        </section>
+
+        <section>
+            <h2>Why Local?</h2>
+            <table class="comparison">
+                <tr><th></th><th>Cloud AI</th><th>Yue (Local)</th></tr>
+                <tr><td>Monthly cost</td><td>$20-200+</td><td><span class="check">$0</span></td></tr>
+                <tr><td>Privacy</td><td>Your data on their servers</td><td><span class="check">Your machine only</span></td></tr>
+                <tr><td>Internet</td><td>Required</td><td><span class="check">Optional</span></td></tr>
+                <tr><td>Latency</td><td>Network round-trip</td><td><span class="check">Instant</span></td></tr>
+                <tr><td>Censorship</td><td>Provider-dependent</td><td><span class="check">None</span></td></tr>
+            </table>
+        </section>
+
+        <section style="text-align: center; padding: 80px 0;">
+            <h2>Get Started</h2>
+            <div class="arch-box" style="text-align: left; max-width: 500px; margin: 0 auto 32px;">
+# Clone and install
+git clone https://github.com/qq2667117339/yue-ai-products.git
+cd yue-ai-products
+pip install -e .
+
+# Start talking to Yue
+yue
+            </div>
+            <p style="color: var(--text-dim); margin-bottom: 24px;">Requires <a href="https://ollama.ai/" style="color: var(--accent);">Ollama</a> with a model.</p>
+            <a href="https://github.com/qq2667117339/yue-ai-products" class="btn btn-primary">View on GitHub</a>
+        </section>
+
+        <footer>
+            <p>MIT Licensed - Built with <a href="https://ollama.ai/">Ollama</a> - Yue - Not a tool.</p>
+        </footer>
+    </div>
+</body>
+</html>
