@@ -149,6 +149,9 @@ def main():
         mem = Memory()
         evo = EvolutionEngine()
         cmd_status(mem, evo)
+    elif args[0] == "--server":
+        from .server import start_server
+        start_server()
     elif args[0] == "--daemon":
         daemon_mode()
     elif args[0] in ("--help", "-h"):

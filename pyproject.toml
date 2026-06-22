@@ -30,6 +30,7 @@ Issues = "https://github.com/qq2667117339/yue-ai-products/issues"
 
 [project.scripts]
 yue = "yue.cli:main"
+yue-server = "yue.server:main"
 
 [tool.setuptools.packages.find]
 where = ["src"]
