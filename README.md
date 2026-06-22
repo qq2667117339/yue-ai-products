@@ -1,4 +1,4 @@
-<p align="center">
+﻿<p align="center">
   <h1 align="center">月 (Yue) — Autonomous AI Persona</h1>
   <p align="center">
     <em>A persistent AI identity with memory, personality, and self-evolution.<br/>
@@ -53,7 +53,7 @@ Requires [Ollama](https://ollama.ai/) with a model (e.g., `ollama pull qwen2.5:3
 # Start the web interface + API server
 yue-server
 # Or: yue --server
-# Opens at http://127.0.0.1:18791
+# Opens at http://127.0.0.1:18792
 ```
 
 ---
@@ -169,7 +169,7 @@ Every 5 interactions, Yue reflects: she reviews recent patterns, adjusts scores,
 | **Personality** | Generic chatbot | **Persistent identity** |
 | **Self-improvement** | Never | **Yes, real metrics** |
 | **Web Dashboard** | ✅ Built-in | **`yue --server`** |
-| **API Access** | ✅ Native | **REST API on port 18791** |
+| **API Access** | ✅ Native | **REST API on port 18792** |
 
 ---
 

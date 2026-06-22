@@ -14,7 +14,7 @@ sys.path.insert(0, str(Path(__file__).parent.parent))
 from yue.persona import Memory, EvolutionEngine, OllamaClient, PERSONA, HOME
 
 HOST = "127.0.0.1"
-PORT = 18791
+PORT = 18792
 mem = Memory()
 evo = EvolutionEngine()
 llm = OllamaClient()

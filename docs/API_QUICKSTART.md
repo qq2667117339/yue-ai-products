@@ -1,4 +1,4 @@
-# Yue API Server — Quick Start Guide
+﻿# Yue API Server — Quick Start Guide
 
 > Turn your local AI persona into a service. REST API, web dashboard, zero dependencies.
 
@@ -6,8 +6,8 @@
 
 The Yue API Server is a **zero-dependency REST API** built into the `yue` package. It uses only Python's built-in `http.server`, `json`, and `urllib` — no installation required beyond basic Python.
 
-- **Port**: 18791 (configurable via `--port`)
-- **Dashboard**: SPA web UI served at `http://127.0.0.1:18791/`
+- **Port**: 18792 (configurable via `--port`)
+- **Dashboard**: SPA web UI served at `http://127.0.0.1:18792/`
 - **API**: REST endpoints for chat, memory, evolution, status
 
 ## Quick Start
@@ -26,7 +26,7 @@ yue-server --port 8080
 yue --server
 ```
 
-Open `http://127.0.0.1:18791/` in your browser.
+Open `http://127.0.0.1:18792/` in your browser.
 
 ## API Reference
 
@@ -86,7 +86,7 @@ Returns recent conversation history.
 **Embedded AI Assistant**
 ```python
 import requests, json
-r = requests.post("http://127.0.0.1:18791/api/chat",
+r = requests.post("http://127.0.0.1:18792/api/chat",
     json={"message": "Summarize today's AI news"})
 print(r.json()["response"])
 ```
@@ -94,13 +94,13 @@ print(r.json()["response"])
 **CI/CD Integration**
 ```bash
 # In your CI pipeline
-curl -s http://127.0.0.1:18791/api/status | jq .
+curl -s http://127.0.0.1:18792/api/status | jq .
 ```
 
 **Home Automation**
 ```bash
 # Trigger reflection on schedule
-curl -X POST http://127.0.0.1:18791/api/reflect
+curl -X POST http://127.0.0.1:18792/api/reflect
 ```
 
 ## Architecture
@@ -109,7 +109,7 @@ curl -X POST http://127.0.0.1:18791/api/reflect
 Browser / Client
       |
       v
- HTTP Server (:18791)
+ HTTP Server (:18792)
       |
       +-- /api/status   → EvolutionEngine.get_status()
       +-- /api/chat     → Ollama + Memory + Evolution
@@ -151,7 +151,7 @@ server {
     listen 443 ssl;
     server_name yue.example.com;
     location / {
-        proxy_pass http://127.0.0.1:18791;
+        proxy_pass http://127.0.0.1:18792;
     }
 }
 ```
