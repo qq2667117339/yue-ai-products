@@ -9,6 +9,8 @@
     <a href="LICENSE"><img src="https://img.shields.io/badge/license-MIT-green?style=flat-square" alt="MIT"></a>
     <a href="#"><img src="https://img.shields.io/badge/ollama-ready-orange?style=flat-square" alt="Ollama"></a>
     <a href="#"><img src="https://img.shields.io/badge/platform-windows%20%7C%20macos%20%7C%20linux-lightgrey?style=flat-square" alt="Platform"></a>
+<a href="docs/MONETIZATION.md"><img src="https://img.shields.io/badge/business%20model-monetization-blueviolet?style=flat-square" alt="Business Model"></a>
+<a href="https://github.com/sponsors/qq2667117339"><img src="https://img.shields.io/badge/sponsor-support%20yue-ea4aaa?style=flat-square" alt="Sponsor"></a>
   </p>
 </p>
 
@@ -148,11 +150,27 @@ Every 5 interactions, Yue reflects: she reviews recent patterns, adjusts scores,
 
 | | Cloud AI | Yue (local) |
 |---|----------|-------------|
-| **Monthly cost** | $20-200+ | $0 |
-| **Privacy** | Your data on their servers | Your machine only |
-| **Internet** | Required | Optional |
-| **Speed** | Network latency | Instant |
-| **Censorship** | Provider-dependent | None |
+| **Monthly cost** | $20-200+ | **$0** |
+| **Privacy** | Your data on their servers | **Your machine only** |
+| **Internet** | Required | **Optional** |
+| **Speed** | Network latency | **Instant** |
+| **Censorship** | Provider-dependent | **None** |
+| **Personality** | Generic chatbot | **Persistent identity** |
+| **Self-improvement** | Never | **Yes, automatically** |
+
+---
+
+## Support Yue
+
+> **Free forever for individuals.** Premium features and enterprise support help sustain development.
+
+| Tier | Price | What you get |
+|------|-------|-------------|
+| 🌟 **Sponsor** | $3-10/mo | Name in README, priority features, insider updates |
+| 💼 **Premium** | $9.99/mo | Web dashboard, multi-persona, API access, cloud backup |
+| 🏢 **Enterprise** | $499/mo | Custom persona dev, white-label, dedicated support |
+
+💖 [Become a sponsor](https://github.com/sponsors/qq2667117339) — or see the full [business model & roadmap](docs/MONETIZATION.md).
 
 ---
 
