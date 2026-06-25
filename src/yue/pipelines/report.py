@@ -1,8 +1,16 @@
 """Daily report pipeline — multi-source AI news digest with market analysis."""
-import urllib.request, json, subprocess, os
+import urllib.request, json, subprocess, os, signal
 from xml.etree import ElementTree as ET
 from datetime import datetime, timezone, timedelta
 from pathlib import Path
+
+# Global timeout: kill entire script if it takes > 90s
+import threading
+def _timeout_kill():
+    os._exit(1)
+timer = threading.Timer(90.0, _timeout_kill)
+timer.daemon = True
+timer.start()
 
 HOME = Path.home() / ".yue"
 OUTPUT = HOME / "reports"
@@ -170,5 +178,11 @@ def generate():
     return path
 
 if __name__ == "__main__":
-    p = generate()
-    print(f"[OK] {p}")
+    try:
+        p = generate()
+        timer.cancel()
+        print(f"[OK] {p}")
+    except Exception as e:
+        timer.cancel()
+        print(f"[ERROR] {e}")
+        sys.exit(1)
